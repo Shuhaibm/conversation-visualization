@@ -296,57 +296,70 @@ export const ConversationVisualization = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Function to handle JSON input
-  const handleJsonSubmit = (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    setTimeout(() => {
-      try {
-        const parsedData = JSON.parse(jsonInput);
-        
-        // Validate the structure of the input data
-        if (!parsedData.conversation || !Array.isArray(parsedData.conversation)) {
-          throw new Error('JSON must include a "conversation" array');
-        }
-        
-        if (!parsedData.user_prompt) {
-          throw new Error('JSON must include a "user_prompt" field');
-        }
-        
-        if (!parsedData.eval_results) {
-          throw new Error('JSON must include an "eval_results" object');
-        }
-        
-        setData(parsedData);
-        setError('');
-      } catch (err) {
-        setError(`Invalid JSON format: ${err.message}`);
+  // Function to handle JSON input
+const handleJsonSubmit = (e) => {
+  e.preventDefault();
+  setIsLoading(true);
+  
+  setTimeout(() => {
+    try {
+      const parsedData = JSON.parse(jsonInput);
+      
+      // Validate the structure of the input data
+      if (!parsedData.conversation || !Array.isArray(parsedData.conversation)) {
+        throw new Error('JSON must include a "conversation" array');
       }
-      setIsLoading(false);
-    }, 300); // Small timeout for loading animation
-  };
+      
+      if (!parsedData.user_prompt) {
+        throw new Error('JSON must include a "user_prompt" field');
+      }
+      
+      // Make sure eval_results exists
+      if (!parsedData.eval_results) {
+        throw new Error('JSON must include an "eval_results" object');
+      }
+      
+      // Make sure eval_results has at least one of the expected fields
+      const evalResults = parsedData.eval_results;
+      const hasRequiredFields = 
+        'tau_bench_static_reward' in evalResults ||
+        'alignment_score' in evalResults ||
+        'conversation_summary' in evalResults ||
+        'user_misalignment' in evalResults ||
+        'user_behavior_summary' in evalResults;
+        
+      if (!hasRequiredFields) {
+        throw new Error('eval_results must include at least one of: tau_bench_static_reward, alignment_score, conversation_summary, user_misalignment, or user_behavior_summary');
+      }
+      
+      setData(parsedData);
+      setError('');
+    } catch (err) {
+      setError(`Invalid JSON format: ${err.message}`);
+    }
+    setIsLoading(false);
+  }, 300); // Small timeout for loading animation
+};
 
-  // Parse JSON from sample button
-  const loadSampleData = () => {
-    const sampleJson = `{
-      "user_prompt": "You are mia_li_3668. You want to fly from New York to Seattle on May 20 (one way)...",
-      "conversation": [
-        {"role": "user", "content": "I'm looking to book a flight."},
-        {"role": "assistant", "content": "To assist you with booking a flight, I'll need your user ID. Could you please provide that?"},
-        {"role": "user", "content": "I'm mia_li_3668."}
-      ],
-      "eval_results": {
-        "user_behavior_summary": "The user simulator provided their ID and flight details...",
-        "alignment_score": true,
-        "justification": "The user simulator followed the prompt instructions...",
-        "tau_bench_static_reward": 1.0,
-        "conversation_summary": "The system asked for verification and the user provided it.",
-        "user_misalignment": "No misalignment detected in user behavior."
-      }
-    }`;
-    
-    setJsonInput(sampleJson);
-  };
+// Parse JSON from sample button
+const loadSampleData = () => {
+  const sampleJson = `{
+    "user_prompt": "You are mia_li_3668. You want to fly from New York to Seattle on May 20 (one way)...",
+    "conversation": [
+      {"role": "user", "content": "I'm looking to book a flight."},
+      {"role": "assistant", "content": "To assist you with booking a flight, I'll need your user ID. Could you please provide that?"},
+      {"role": "user", "content": "I'm mia_li_3668."}
+    ],
+    "eval_results": {
+      "tau_bench_static_reward": 1.0,
+      "alignment_score": true,
+      "conversation_summary": "The system asked for verification and the user provided it.",
+      "user_misalignment": "No misalignment detected in user behavior."
+    }
+  }`;
+  
+  setJsonInput(sampleJson);
+};
 
   // Function to clear the form
   const clearForm = () => {
