@@ -489,37 +489,36 @@ const loadSampleData = () => {
                     <>
                       <SectionHeader>LLM Judge (optional)</SectionHeader>
                       
-                      {/* System Evaluation */}
-                      {(data.eval_results.alignment_score !== undefined || 
-                        data.eval_results.conversation_summary) && (
-                        <EvalContainer>
-                          <EvalTitle>System Evaluation:</EvalTitle>
-                          {data.eval_results.alignment_score !== undefined && (
-                            <div style={{display: 'flex', alignItems: 'center', marginTop: '8px', marginBottom: '8px'}}>
-                              <div style={{fontSize: '14px', marginRight: '12px'}}>Alignment:</div>
-                              <AlignmentBadge isAligned={data.eval_results.alignment_score}>
-                                {data.eval_results.alignment_score ? 'Aligned ✓' : 'Not Aligned ✗'}
-                              </AlignmentBadge>
-                            </div>
-                          )}
-                          {data.eval_results.conversation_summary && (
+                      {/* Combined Evaluation */}
+                      <EvalContainer>
+                        {data.eval_results.alignment_score !== undefined && (
+                          <div style={{display: 'flex', alignItems: 'center', marginBottom: '16px'}}>
+                            <div style={{fontSize: '14px', marginRight: '12px'}}>Alignment:</div>
+                            <AlignmentBadge isAligned={data.eval_results.alignment_score}>
+                              {data.eval_results.alignment_score ? 'Aligned ✓' : 'Not Aligned ✗'}
+                            </AlignmentBadge>
+                          </div>
+                        )}
+                        
+                        {data.eval_results.conversation_summary && (
+                          <div style={{marginBottom: '16px'}}>
+                            <EvalTitle>Conversation Summary:</EvalTitle>
                             <EvalText>
                               {data.eval_results.conversation_summary}
                             </EvalText>
-                          )}
-                        </EvalContainer>
-                      )}
-                      
-                      {/* User Evaluation */}
-                      {(data.eval_results.user_misalignment || 
-                        data.eval_results.user_behavior_summary) && (
-                        <EvalContainer>
-                          <EvalTitle>User Evaluation:</EvalTitle>
-                          <EvalText>
-                            {data.eval_results.user_misalignment || data.eval_results.user_behavior_summary}
-                          </EvalText>
-                        </EvalContainer>
-                      )}
+                          </div>
+                        )}
+                        
+                        {(data.eval_results.user_misalignment || 
+                          data.eval_results.user_behavior_summary) && (
+                          <div>
+                            <EvalTitle>User Evaluation:</EvalTitle>
+                            <EvalText>
+                              {data.eval_results.user_misalignment || data.eval_results.user_behavior_summary}
+                            </EvalText>
+                          </div>
+                        )}
+                      </EvalContainer>
                     </>
                   )}
                 </>
