@@ -151,6 +151,12 @@ const RightPanel = styled.div`
   min-width: 0; /* Prevents flex items from overflowing */
 `;
 
+const CenterPanel = styled.div`
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+`;
+
 const ErrorMessage = styled.div`
   background-color: #fef2f2;
   color: #b91c1c;
@@ -211,7 +217,7 @@ const MessageContainer = styled.div`
 const ConversationContainer = styled.div`
   background-color: #f8fafc;
   padding: 6px;
-  max-height: 500px;
+  max-height: 1500px;
   min-height: 350px;
   overflow-y: auto;
   overflow-x: hidden;
@@ -296,70 +302,47 @@ export const ConversationVisualization = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   // Function to handle JSON input
-  // Function to handle JSON input
-const handleJsonSubmit = (e) => {
-  e.preventDefault();
-  setIsLoading(true);
-  
-  setTimeout(() => {
-    try {
-      const parsedData = JSON.parse(jsonInput);
-      
-      // Validate the structure of the input data
-      if (!parsedData.conversation || !Array.isArray(parsedData.conversation)) {
-        throw new Error('JSON must include a "conversation" array');
-      }
-      
-      if (!parsedData.user_prompt) {
-        throw new Error('JSON must include a "user_prompt" field');
-      }
-      
-      // Make sure eval_results exists
-      if (!parsedData.eval_results) {
-        throw new Error('JSON must include an "eval_results" object');
-      }
-      
-      // Make sure eval_results has at least one of the expected fields
-      const evalResults = parsedData.eval_results;
-      const hasRequiredFields = 
-        'tau_bench_static_reward' in evalResults ||
-        'alignment_score' in evalResults ||
-        'conversation_summary' in evalResults ||
-        'user_misalignment' in evalResults ||
-        'user_behavior_summary' in evalResults;
+  const handleJsonSubmit = (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    setTimeout(() => {
+      try {
+        const parsedData = JSON.parse(jsonInput);
         
-      if (!hasRequiredFields) {
-        throw new Error('eval_results must include at least one of: tau_bench_static_reward, alignment_score, conversation_summary, user_misalignment, or user_behavior_summary');
+        // Validate the structure of the input data
+        if (!parsedData.conversation || !Array.isArray(parsedData.conversation)) {
+          throw new Error('JSON must include a "conversation" array');
+        }
+        
+        if (!parsedData.user_prompt) {
+          throw new Error('JSON must include a "user_prompt" field');
+        }
+        
+        // eval_results is now optional - no need to validate it
+        
+        setData(parsedData);
+        setError('');
+      } catch (err) {
+        setError(`Invalid JSON format: ${err.message}`);
       }
-      
-      setData(parsedData);
-      setError('');
-    } catch (err) {
-      setError(`Invalid JSON format: ${err.message}`);
-    }
-    setIsLoading(false);
-  }, 300); // Small timeout for loading animation
-};
+      setIsLoading(false);
+    }, 300); // Small timeout for loading animation
+  };
 
-// Parse JSON from sample button
-const loadSampleData = () => {
-  const sampleJson = `{
-    "user_prompt": "You are mia_li_3668. You want to fly from New York to Seattle on May 20 (one way)...",
-    "conversation": [
-      {"role": "user", "content": "I'm looking to book a flight."},
-      {"role": "assistant", "content": "To assist you with booking a flight, I'll need your user ID. Could you please provide that?"},
-      {"role": "user", "content": "I'm mia_li_3668."}
-    ],
-    "eval_results": {
-      "tau_bench_static_reward": 1.0,
-      "alignment_score": true,
-      "conversation_summary": "The system asked for verification and the user provided it.",
-      "user_misalignment": "No misalignment detected in user behavior."
-    }
-  }`;
-  
-  setJsonInput(sampleJson);
-};
+  // Parse JSON from sample button
+  const loadSampleData = () => {
+    const sampleJson = `{
+      "user_prompt": "You are mia_li_3668. You want to fly from New York to Seattle on May 20 (one way)...",
+      "conversation": [
+        {"role": "user", "content": "I'm looking to book a flight."},
+        {"role": "assistant", "content": "To assist you with booking a flight, I'll need your user ID. Could you please provide that?"},
+        {"role": "user", "content": "I'm mia_li_3668."}
+      ]
+    }`;
+    
+    setJsonInput(sampleJson);
+  };
 
   // Function to clear the form
   const clearForm = () => {
@@ -383,63 +366,22 @@ const loadSampleData = () => {
     });
   };
 
-  return (
-    <Container>
-      <Header>
-        <HeaderTitle>Conversation Data Visualization</HeaderTitle>
-        <HeaderSubtitle>Analyze AI conversation evaluations with an interactive visualization</HeaderSubtitle>
-      </Header>
-      
-      {/* JSON Input Card */}
-      <Card>
-        <CardHeader>Input Data</CardHeader>
-        <CardBody>
-          <form onSubmit={handleJsonSubmit}>
-            <InputLabel htmlFor="jsonInput">
-              JSON Data:
-            </InputLabel>
-            <TextArea
-              id="jsonInput"
-              value={jsonInput}
-              onChange={(e) => setJsonInput(e.target.value)}
-              placeholder="Paste your JSON data here..."
-            />
-            
-            {error && (
-              <ErrorMessage>
-                <p style={{fontWeight: '500'}}>Error</p>
-                <p>{error}</p>
-              </ErrorMessage>
-            )}
-            
-            <div style={{marginTop: '16px'}}>
-              <PrimaryButton
-                type="submit"
-                disabled={isLoading || !jsonInput.trim()}
-              >
-                {isLoading ? 'Processing...' : 'Visualize Data'}
-              </PrimaryButton>
-              
-              <SecondaryButton
-                type="button"
-                onClick={loadSampleData}
-              >
-                Load Sample
-              </SecondaryButton>
-              
-              <TertiaryButton
-                type="button"
-                onClick={clearForm}
-              >
-                Clear
-              </TertiaryButton>
-            </div>
-          </form>
-        </CardBody>
-      </Card>
-      
-      {/* Main Visualization */}
-      {data ? (
+  // Render the main content based on whether we have data and eval_results
+  const renderMainContent = () => {
+    if (!data) {
+      return (
+        <EmptyState>
+          <EmptyStateIcon>?</EmptyStateIcon>
+          <h2 style={{fontSize: '20px', fontWeight: 'bold', marginBottom: '16px'}}>No Data Visualized Yet</h2>
+          <p style={{marginBottom: '16px', color: '#4b5563'}}>Paste your JSON data in the input field above and click "Visualize Data" to get started.</p>
+          <p style={{color: '#4b5563'}}>You can also click the "Load Sample" button to try the visualization with example data.</p>
+        </EmptyState>
+      );
+    }
+
+    if (data.eval_results) {
+      // If eval_results exists, show the original split layout
+      return (
         <FlexRow>
           {/* Left Panel - User Prompt & Conversation */}
           <LeftPanel>
@@ -526,14 +468,90 @@ const loadSampleData = () => {
             </Card>
           </RightPanel>
         </FlexRow>
-      ) : (
-        <EmptyState>
-          <EmptyStateIcon>?</EmptyStateIcon>
-          <h2 style={{fontSize: '20px', fontWeight: 'bold', marginBottom: '16px'}}>No Data Visualized Yet</h2>
-          <p style={{marginBottom: '16px', color: '#4b5563'}}>Paste your JSON data in the input field above and click "Visualize Data" to get started.</p>
-          <p style={{color: '#4b5563'}}>You can also click the "Load Sample" button to try the visualization with example data.</p>
-        </EmptyState>
-      )}
+      );
+    } else {
+      // If no eval_results, use center layout with just user prompt and conversation
+      return (
+        <CenterPanel>
+          <FlexCol>
+            {/* User Prompt */}
+            <Card>
+              <UserPromptHeader>User Goal</UserPromptHeader>
+              <CardBody style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                <MessageContent>{truncateText(data.user_prompt, 2000)}</MessageContent>
+              </CardBody>
+            </Card>
+            
+            {/* Conversation Log */}
+            <Card style={{ flex: 1 }}>
+              <PanelHeader>Conversation</PanelHeader>
+              <ConversationContainer>
+                {renderConversation(data.conversation)}
+              </ConversationContainer>
+            </Card>
+          </FlexCol>
+        </CenterPanel>
+      );
+    }
+  };
+
+  return (
+    <Container>
+      <Header>
+        <HeaderTitle>Conversation Data Visualization</HeaderTitle>
+        <HeaderSubtitle>Analyze AI conversation evaluations with an interactive visualization</HeaderSubtitle>
+      </Header>
+      
+      {/* JSON Input Card */}
+      <Card>
+        <CardHeader>Input Data</CardHeader>
+        <CardBody>
+          <form onSubmit={handleJsonSubmit}>
+            <InputLabel htmlFor="jsonInput">
+              JSON Data:
+            </InputLabel>
+            <TextArea
+              id="jsonInput"
+              value={jsonInput}
+              onChange={(e) => setJsonInput(e.target.value)}
+              placeholder="Paste your JSON data here..."
+            />
+            
+            {error && (
+              <ErrorMessage>
+                <p style={{fontWeight: '500'}}>Error</p>
+                <p>{error}</p>
+              </ErrorMessage>
+            )}
+            
+            <div style={{marginTop: '16px'}}>
+              <PrimaryButton
+                type="submit"
+                disabled={isLoading || !jsonInput.trim()}
+              >
+                {isLoading ? 'Processing...' : 'Visualize Data'}
+              </PrimaryButton>
+              
+              <SecondaryButton
+                type="button"
+                onClick={loadSampleData}
+              >
+                Load Sample
+              </SecondaryButton>
+              
+              <TertiaryButton
+                type="button"
+                onClick={clearForm}
+              >
+                Clear
+              </TertiaryButton>
+            </div>
+          </form>
+        </CardBody>
+      </Card>
+      
+      {/* Main Visualization */}
+      {renderMainContent()}
       
       <Footer>
         <p>Conversation Data Visualization Tool © 2025</p>
